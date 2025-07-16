@@ -1,7 +1,6 @@
 export interface IUserSchema {
-  name: string;
   phone_number: string;
-  role: UserRole;
+  role: TUserRole;
 }
 
 export interface Task {
@@ -25,9 +24,16 @@ export interface User {
   id: string;
   name: string;
   phone_number: string;
-  role: UserRole;
+  role: TUserRole;
   tasks: Task[];
 }
+
+export type TUserRole =
+  | 'plumber'
+  | 'electrician'
+  | 'carpenter'
+  | 'painter'
+  | 'mechanic';
 
 export enum UserRole {
   Plumber = 'plumber',

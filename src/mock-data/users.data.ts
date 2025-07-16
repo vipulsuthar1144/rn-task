@@ -5,7 +5,7 @@ export const mockUsers: User[] = [
     id: 'u001',
     name: 'Ravi Kumar',
     phone_number: '9821600992',
-    role: UserRole.Plumber,
+    role: 'painter',
     tasks: [
       {
         name: 'Fix kitchen sink',
@@ -29,7 +29,7 @@ export const mockUsers: User[] = [
     id: 'u002',
     name: 'Amit Sharma',
     phone_number: '9876543210',
-    role: UserRole.Electrician,
+    role: 'electrician',
     tasks: [
       {
         name: 'Install ceiling fan',
@@ -53,7 +53,7 @@ export const mockUsers: User[] = [
     id: 'u003',
     name: 'Sunil Verma',
     phone_number: '9876543210',
-    role: UserRole.Carpenter,
+    role: 'plumber',
     tasks: [
       {
         name: 'Build wooden shelf',
@@ -77,7 +77,7 @@ export const mockUsers: User[] = [
     id: 'u004',
     name: 'Meena Joshi',
     phone_number: '9876543210',
-    role: UserRole.Painter,
+    role: 'mechanic',
     tasks: [
       {
         name: 'Paint living room',
@@ -102,7 +102,7 @@ export const mockUsers: User[] = [
     id: 'u005',
     name: 'Rajeev Nair',
     phone_number: '9876543210',
-    role: UserRole.Mechanic,
+    role: 'electrician',
     tasks: [
       {
         name: 'Car engine service',

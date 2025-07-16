@@ -13,6 +13,8 @@ import * as Yup from 'yup';
 import AppButton from '@/components/ui/Button';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '@/navigations/AuthStack';
+import { ToastUtils } from '@/utils/toast/toastUtils';
+import { useAuth } from '@/config/provider/AuthProvider';
 
 interface OtpFormValues {
   otp: string;
@@ -27,9 +29,11 @@ const validationSchema = Yup.object({
 type Props = NativeStackScreenProps<AuthStackParamList, 'OTP'>;
 
 const OTPScreen = ({ route }: Props) => {
-  const { user } = route.params;
+  const { user, confimationMessage } = route.params;
+  const { login } = useAuth();
   const [timer, setTimer] = useState(60);
   const [resendDisabled, setResendDisabled] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
@@ -52,7 +56,15 @@ const OTPScreen = ({ route }: Props) => {
   };
 
   const handleSubmit = async (values: OtpFormValues) => {
-    console.log('OTP entered:', values.otp);
+    try {
+      setIsLoading(true);
+      await confimationMessage.confirm(values.otp);
+      login();
+    } catch (error: any) {
+      ToastUtils.show(error.message || 'Something wents wrong');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -99,7 +111,7 @@ const OTPScreen = ({ route }: Props) => {
 
             <AppButton
               title="Verify OTP"
-              loading={isSubmitting}
+              loading={isSubmitting || isLoading}
               onPress={handleSubmit}
               buttonStyle={styles.button}
             />
