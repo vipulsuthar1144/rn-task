@@ -7,7 +7,6 @@ import AntDesign from 'react-native-vector-icons/AntDesign';
 export type BottomTabParamList = {
   Home: undefined;
   Profile: undefined;
-  Details: undefined;
 };
 
 const Tab = createBottomTabNavigator<BottomTabParamList>();
@@ -18,7 +17,7 @@ const BottomTabs = () => {
       initialRouteName="Home"
       screenOptions={({ route }) => ({
         animation: 'shift',
-        headerShown: false,
+        headerShown: true,
         tabBarActiveTintColor: '#6200ee',
         tabBarInactiveTintColor: 'gray',
         tabBarIcon: ({ color, size }) => {
@@ -45,8 +44,16 @@ const BottomTabs = () => {
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{ headerTitle: 'Dashboard' }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{ headerShown: false }}
+      />
     </Tab.Navigator>
   );
 };

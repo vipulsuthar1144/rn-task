@@ -8,7 +8,6 @@ import LoginScreen from '@/screens/auth/LoginScreen';
 import { useAuth } from '@/config/provider/AuthProvider';
 
 export type RootStackParamList = {
-  Auth: undefined;
   Dashboard: undefined;
 };
 
