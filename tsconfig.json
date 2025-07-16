@@ -2,7 +2,9 @@
   "extends": "@react-native/typescript-config",
   "compilerOptions": {
     "baseUrl": ".", // Important for resolving paths
+    "typeRoots": ["./src/@types", "./node_modules/@types"],
     "paths": {
+      "@env": ["./src/@types/env.d.ts"],
       "@/*": ["src/*"]
     }
   }
