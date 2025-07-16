@@ -4,18 +4,24 @@
  *
  * @format
  */
-
-import { NewAppScreen } from '@react-native/new-app-screen';
+import { AuthProvider } from '@/config/provider/AuthProvider';
+import RootNavigator from '@/navigations/RootNavigator';
+import { toastConfig } from '@/utils/toast/toast.config';
 import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <NewAppScreen templateFileName="App.tsx" />
-    </View>
+    <AuthProvider>
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        <RootNavigator />
+      </SafeAreaView>
+      <Toast config={toastConfig} />
+    </AuthProvider>
   );
 }
 
