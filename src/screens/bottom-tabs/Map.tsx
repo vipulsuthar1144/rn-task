@@ -6,7 +6,6 @@ import MapView, { Marker } from 'react-native-maps';
 const MapScreen = () => {
   const latitude = 28.6139; // Replace with user's latitude
   const longitude = 77.209; // Replace with user's longitude
-  const userName = 'Ravi Kumar'; // Optional label
 
   const openInGoogleMaps = () => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;

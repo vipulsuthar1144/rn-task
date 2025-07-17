@@ -8,7 +8,7 @@ import HistoryScreen from '@/screens/bottom-tabs/HistoryScreen';
 
 export type BottomTabParamList = {
   Home: undefined;
-  History: undefined;
+  History: { recall?: boolean };
   Profile: undefined;
 };
 
@@ -22,7 +22,6 @@ const BottomTabs = () => {
       screenOptions={({ route }) => ({
         animation: 'shift',
         headerShown: true,
-
         headerStyle: {
           backgroundColor: theme.colors.primary,
         },
@@ -66,6 +65,7 @@ const BottomTabs = () => {
       <Tab.Screen
         name="History"
         component={HistoryScreen}
+        initialParams={{ recall: false }}
         options={{ headerTitle: 'History' }}
       />
       <Tab.Screen

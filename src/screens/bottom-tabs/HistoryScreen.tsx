@@ -17,10 +17,14 @@ import {
 import { STATUS_OPTIONS } from '@/utils/constants';
 import { useTheme } from '@/config/provider/ThemeProvider';
 import { useUserProvider } from '@/config/provider/UserProvider';
+import { BottomTabParamList } from '@/navigations/BottomTabs';
+import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 
-const HistoryScreen = () => {
+type Props = BottomTabScreenProps<BottomTabParamList, 'History'>;
+const HistoryScreen = ({ route }: Props) => {
+  const { recall } = route.params;
   const { theme } = useTheme();
-  const { user } = useUserProvider();
+  const { user, selectedRole } = useUserProvider();
 
   const [data, setData] = useState<{
     loading: boolean;
@@ -43,7 +47,10 @@ const HistoryScreen = () => {
     }));
 
     try {
-      const services = await fetchCompletedServicesByWorker(user?.id ?? '');
+      const services = await fetchCompletedServicesByWorker(
+        user?.id ?? '',
+        selectedRole,
+      );
       setData(prev => ({
         ...prev,
         loading: false,
@@ -64,7 +71,7 @@ const HistoryScreen = () => {
 
   useEffect(() => {
     fetchServices();
-  }, [fetchServices]);
+  }, [recall]);
 
   const onRefresh = () => fetchServices(true);
 
@@ -76,6 +83,8 @@ const HistoryScreen = () => {
       ]}
       elevation={3}
     >
+      <Card.Cover source={{ uri: item.imageUrl }} style={styles.cardImage} />
+
       <Card.Title
         title={item.title}
         subtitle={`₹${item.price}`}
@@ -83,9 +92,12 @@ const HistoryScreen = () => {
         subtitleStyle={[styles.cardSubtitle, { color: theme.colors.text }]}
       />
       <Card.Content>
-        <View style={[styles.statusBadge]}>
-          <Text style={[styles.statusText, { color: theme.colors.text }]}>
-            {item.status.toUpperCase()}
+        <View style={styles.row}>
+          <Text style={[styles.label, { color: theme.colors.text }]}>
+            Status:
+          </Text>
+          <Text style={[styles.value, { color: theme.colors.text }]}>
+            {item?.status}
           </Text>
         </View>
 
@@ -94,7 +106,7 @@ const HistoryScreen = () => {
             Customer:
           </Text>
           <Text style={[styles.value, { color: theme.colors.text }]}>
-            {item.customer?.name}
+            {item?.customer_name}
           </Text>
         </View>
         <View style={styles.row}>
@@ -102,7 +114,7 @@ const HistoryScreen = () => {
             Phone:
           </Text>
           <Text style={[styles.value, { color: theme.colors.text }]}>
-            {item.customer?.phone}
+            {item?.customer_phone_number}
           </Text>
         </View>
       </Card.Content>
@@ -121,16 +133,17 @@ const HistoryScreen = () => {
           <Text style={{ color: 'red' }}>{data.error}</Text>
           <Button onPress={() => fetchServices()}>Retry</Button>
         </View>
-      ) : data.services.length === 0 ? (
-        <View style={styles.center}>
-          <Text>No services found.</Text>
-        </View>
       ) : (
         <FlatList
           data={data.services}
           keyExtractor={item => item.id}
           renderItem={renderItem}
           contentContainerStyle={{ padding: 16 }}
+          ListEmptyComponent={
+            <View style={styles.center}>
+              <Text>No services found.</Text>
+            </View>
+          }
           refreshControl={
             <RefreshControl
               refreshing={data.refreshing}
@@ -146,6 +159,12 @@ const HistoryScreen = () => {
 export default HistoryScreen;
 
 const styles = StyleSheet.create({
+  cardImage: {
+    height: 180,
+    resizeMode: 'cover',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+  },
   filterWrapper: {
     paddingTop: 12,
     paddingBottom: 4,

@@ -38,7 +38,7 @@ const OTPScreen = ({ route }: Props) => {
   const { theme } = useTheme();
 
   const [localState, setLocalState] = useState({
-    timer: 60,
+    timer: 30,
     resendDisabled: true,
     isLoading: false,
     generatedOTP: '',
@@ -50,7 +50,7 @@ const OTPScreen = ({ route }: Props) => {
 
   const getOTP = () => {
     const otp = generateDummyOTP();
-    ToastUtils.show(`Generated OTP :: ${otp}`);
+    ToastUtils.show(`Generated OTP :: ${otp}`, 5000);
     setLocalState(prev => ({ ...prev, generatedOTP: otp }));
   };
 
@@ -88,7 +88,6 @@ const OTPScreen = ({ route }: Props) => {
         const userData = await checkPhoneNumberInFirestore(user.phone_number);
         if (userData) {
           login(userData, user.role);
-          ToastUtils.show('User Found');
         } else {
           ToastUtils.show('User Not Found');
         }

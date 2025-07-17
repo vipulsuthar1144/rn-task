@@ -13,7 +13,11 @@ export const checkPhoneNumberInFirestore = async (
     if (userSnapshot.empty) {
       return null;
     } else {
-      const userData = userSnapshot.docs[0].data() as IUserSchema;
+      const doc = userSnapshot.docs[0];
+      const userData = {
+        id: doc.id,
+        ...doc.data(),
+      } as IUserSchema;
       return userData;
     }
   } catch (error: any) {

@@ -17,7 +17,7 @@ import { useUserProvider } from '@/config/provider/UserProvider';
 type Props = BottomTabScreenProps<BottomTabParamList, 'Profile'>;
 
 const ProfileScreen = () => {
-  const { logout, user } = useUserProvider();
+  const { logout, user, selectedRole } = useUserProvider();
   const { theme, toggleTheme } = useTheme();
 
   const handleLogout = () => {
@@ -59,6 +59,9 @@ const ProfileScreen = () => {
         </Text>
         <Text style={[styles.value, { color: theme.colors.text }]}>
           {user?.phone_number}
+        </Text>
+        <Text style={[styles.value, { color: theme.colors.text }]}>
+          {selectedRole.toUpperCase()}
         </Text>
       </View>
 

@@ -9,24 +9,42 @@ import {
 } from 'react-native';
 import { Text, Button, Card } from 'react-native-paper';
 import { IServiceSchema, ServiceStatus } from '@/schemas/service.schema';
-import { fetchAllServices, updateServiceStatus } from '@/services/service';
+import {
+  addMultipleServices,
+  fetchAllServices,
+  savePendingUpdate,
+  updateServiceStatus,
+  uploadImageToFirebase,
+} from '@/services/service';
 import { STATUS_OPTIONS } from '@/utils/constants';
 import { useTheme } from '@/config/provider/ThemeProvider';
 import MapScreen from './Map';
 import { useUserProvider } from '@/config/provider/UserProvider';
+import { pickImage } from '@/utils/UtilityImage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ToastUtils } from '@/utils/toast/toastUtils';
+import NetInfo from '@react-native-community/netinfo';
+import { TUserRole } from '@/schemas/IUserSchema';
+import { BottomTabParamList } from '@/navigations/BottomTabs';
+import { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 
-const ServicesScreen = () => {
+type Props = BottomTabScreenProps<BottomTabParamList, 'Home'>;
+const ServicesScreen = ({ navigation }: Props) => {
   const { theme } = useTheme();
-  const { selectedRole } = useUserProvider();
+  const { selectedRole, user } = useUserProvider();
+
+  const [uploadingIds, setUploadingIds] = useState<Set<string>>(new Set());
 
   const [data, setData] = useState<{
     loading: boolean;
     refreshing: boolean;
+    uploadImageLoading: boolean;
     error: string;
     services: IServiceSchema[];
   }>({
     loading: false,
     refreshing: false,
+    uploadImageLoading: false,
     error: '',
     services: [],
   });
@@ -61,23 +79,50 @@ const ServicesScreen = () => {
 
   useEffect(() => {
     fetchServices();
+    // addMultipleServices();
   }, [fetchServices]);
 
   const onRefresh = () => fetchServices(true);
 
   const onUpdateStatus = async (service: IServiceSchema) => {
-    const nextStatus: ServiceStatus =
-      service.status === 'pending'
-        ? 'inProgress'
-        : service.status === 'inProgress'
-        ? 'completed'
-        : service.status;
+    const nextStatus: ServiceStatus = 'completed';
+
+    setUploadingIds(prev => new Set(prev).add(service.id));
 
     try {
-      await updateServiceStatus(service.id, nextStatus);
+      const imageUri = await pickImage();
+      const { isConnected } = await NetInfo.fetch();
+
+      if (!isConnected) {
+        await savePendingUpdate({
+          serviceId: service.id,
+          nextStatus,
+          imageUri,
+          workerId: user?.id ?? '',
+        });
+        ToastUtils.show('No internet. Status update saved locally.');
+        return;
+      }
+
+      const imageUrl = await uploadImageToFirebase(imageUri ?? '');
+      await updateServiceStatus(
+        service.id,
+        nextStatus,
+        imageUrl,
+        user?.id ?? '',
+      );
+
       fetchServices();
-    } catch (err) {
-      console.error('Failed to update status:', err);
+      navigation.navigate('History', { recall: true });
+    } catch (err: any) {
+      ToastUtils.show(err?.message || 'Something went wrong');
+      // console.error('Status update failed:', err);
+    } finally {
+      setUploadingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(service.id);
+        return newSet;
+      });
     }
   };
 
@@ -96,9 +141,12 @@ const ServicesScreen = () => {
         subtitleStyle={[styles.cardSubtitle, { color: theme.colors.text }]}
       />
       <Card.Content>
-        <View style={[styles.statusBadge]}>
-          <Text style={[styles.statusText, { color: theme.colors.text }]}>
-            {item.status.toUpperCase()}
+        <View style={styles.row}>
+          <Text style={[styles.label, { color: theme.colors.text }]}>
+            Status:
+          </Text>
+          <Text style={[styles.value, { color: theme.colors.text }]}>
+            {item?.status}
           </Text>
         </View>
 
@@ -107,7 +155,7 @@ const ServicesScreen = () => {
             Customer:
           </Text>
           <Text style={[styles.value, { color: theme.colors.text }]}>
-            {item.customer?.name}
+            {item?.customer_name}
           </Text>
         </View>
         <View style={styles.row}>
@@ -115,7 +163,7 @@ const ServicesScreen = () => {
             Phone:
           </Text>
           <Text style={[styles.value, { color: theme.colors.text }]}>
-            {item.customer?.phone}
+            {item?.customer_phone_number}
           </Text>
         </View>
         <MapScreen />
@@ -128,8 +176,15 @@ const ServicesScreen = () => {
             onPress={() => onUpdateStatus(item)}
             style={styles.statusButton}
             labelStyle={{ fontWeight: 'bold' }}
+            disabled={uploadingIds.has(item.id)}
           >
-            {item.status === 'pending' ? 'Start' : 'Complete'}
+            {uploadingIds.has(item.id) ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={{ color: '#fff' }}>
+                {item.status === 'pending' ? 'Start Work' : 'Completed'}
+              </Text>
+            )}
           </Button>
         )}
       </Card.Actions>
@@ -148,15 +203,16 @@ const ServicesScreen = () => {
           <Text style={{ color: 'red' }}>{data.error}</Text>
           <Button onPress={() => fetchServices()}>Retry</Button>
         </View>
-      ) : data.services.length === 0 ? (
-        <View style={styles.center}>
-          <Text>No services found.</Text>
-        </View>
       ) : (
         <FlatList
           data={data.services}
           keyExtractor={item => item.id}
           renderItem={renderItem}
+          ListEmptyComponent={
+            <View style={styles.center}>
+              <Text>No services found.</Text>
+            </View>
+          }
           contentContainerStyle={{ padding: 16 }}
           refreshControl={
             <RefreshControl

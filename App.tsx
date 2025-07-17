@@ -4,14 +4,12 @@
  *
  * @format
  */
+import NetworkProvider from '@/config/provider/NetworkProvider';
 import { ThemeProvider } from '@/config/provider/ThemeProvider';
 import { UserProvider } from '@/config/provider/UserProvider';
 import RootNavigator from '@/navigations/RootNavigator';
-import { darkTheme, lightTheme } from '@/utils/Colors';
 import { toastConfig } from '@/utils/toast/toast.config';
 import { StatusBar, StyleSheet, useColorScheme, View } from 'react-native';
-import { PaperProvider } from 'react-native-paper';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 
 function App() {
@@ -23,7 +21,9 @@ function App() {
         <StatusBar
           barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'}
         />
-        <RootNavigator />
+        <NetworkProvider>
+          <RootNavigator />
+        </NetworkProvider>
         <Toast config={toastConfig} />
       </UserProvider>
     </ThemeProvider>
