@@ -1,31 +1,8 @@
 export interface IUserSchema {
+  id?: string;
+  name?: string;
   phone_number: string;
   role: TUserRole;
-}
-
-export interface Task {
-  name: string;
-  description: string;
-  status: 'pending' | 'in_progress' | 'completed';
-  customerName: string;
-  customer_phone: string;
-  address: {
-    line: string;
-    city: string;
-    state: string;
-    lat: number;
-    lng: number;
-  };
-  dateTime: string;
-  imageUrl: string;
-}
-
-export interface User {
-  id: string;
-  name: string;
-  phone_number: string;
-  role: TUserRole;
-  tasks: Task[];
 }
 
 export type TUserRole =

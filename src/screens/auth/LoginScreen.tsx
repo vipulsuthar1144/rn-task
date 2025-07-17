@@ -15,12 +15,10 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { TUserRole, UserRole } from '@/schemas/IUserSchema';
 import FormikRolePicker from '@/components/ui/FormikRolePicker';
 import { AuthStackParamList } from '@/navigations/AuthStack';
-import {
-  FirebaseAuthTypes,
-  getAuth,
-  onAuthStateChanged,
-  signInWithPhoneNumber,
-} from '@react-native-firebase/auth';
+import { onAuthStateChanged, getAuth } from '@react-native-firebase/auth';
+import { useTheme } from '@/config/provider/ThemeProvider';
+import { requestOTP } from '@/services/authService';
+import { checkPhoneNumberInFirestore } from '@/services/userService';
 
 interface LoginFormValues {
   phone_number: string;
@@ -35,45 +33,44 @@ const validationSchema = Yup.object({
 });
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
+
 const LoginScreen = ({ navigation }: Props) => {
   const [isLoading, setIsLoading] = useState(false);
+  const { theme } = useTheme(); // optional
+
   const initialValues: LoginFormValues = {
     phone_number: '',
     role: 'carpenter',
   };
 
-  function handleAuthStateChanged(user: any) {
-    if (user) {
-    }
-  }
-
   useEffect(() => {
-    const subscriber = onAuthStateChanged(getAuth(), handleAuthStateChanged);
-    return subscriber; // unsubscribe on unmount
+    const subscriber = onAuthStateChanged(getAuth(), user => {
+      if (user) {
+        // Optional: redirect if already logged in
+      }
+    });
+    return subscriber;
   }, []);
 
-  // Handle the button press
-  async function handleSignInWithPhoneNumber(values: LoginFormValues) {
+  const handleLogin = async (values: LoginFormValues) => {
     try {
       setIsLoading(true);
-      const auth = getAuth();
-      const confirmation = await signInWithPhoneNumber(
-        auth,
-        values.phone_number,
-      );
+      const user = await checkPhoneNumberInFirestore(values.phone_number);
+      if (!user) {
+        ToastUtils.show('User Not Found');
+        return;
+      }
+      // const confirmation = await requestOTP(values.phone_number);
       ToastUtils.show('OTP Sent');
+
       navigation.navigate('OTP', {
         user: {
           phone_number: values.phone_number,
           role: values.role,
         },
-        confimationMessage: confirmation,
+        // confimationMessage: confirmation,
       });
-    } catch (err: any) {
-      console.log(err);
-
-      const error = err as FirebaseAuthTypes.NativeFirebaseAuthError;
-
+    } catch (error: any) {
       switch (error.code) {
         case 'auth/invalid-phone-number':
           ToastUtils.show('Invalid phone number format.');
@@ -86,58 +83,32 @@ const LoginScreen = ({ navigation }: Props) => {
           break;
         case 'auth/too-many-requests':
           ToastUtils.show(
-            'Too many requests. You’ve been temporarily blocked. Try again later.',
+            'Too many requests. You’ve been temporarily blocked.',
           );
           break;
         case 'auth/network-request-failed':
-          ToastUtils.show(
-            'Network error. Please check your internet connection.',
-          );
-          break;
-        case 'auth/user-disabled':
-          ToastUtils.show('This user has been disabled.');
-          break;
-        case 'auth/app-not-authorized':
-          ToastUtils.show(
-            'App is not authorized to use Firebase Authentication.',
-          );
-          break;
-        case 'auth/captcha-check-failed':
-          ToastUtils.show('CAPTCHA check failed. Please try again.');
-          break;
-        case 'auth/invalid-verification-code':
-          ToastUtils.show('The OTP you entered is invalid.');
-          break;
-        case 'auth/session-expired':
-          ToastUtils.show('Your session has expired. Please resend OTP.');
+          ToastUtils.show('Network error. Check your connection.');
           break;
         default:
-          ToastUtils.show(
-            error.message || 'Something went wrong. Please try again.',
-          );
-          break;
+          ToastUtils.show(error.message || 'Something went wrong.');
       }
     } finally {
       setIsLoading(false);
-    }
-  }
-
-  const handleLogin = async (values: LoginFormValues) => {
-    try {
-      handleSignInWithPhoneNumber(values);
-    } catch (error) {
-      ToastUtils.show('Login failed');
     }
   };
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.headingWrapper}>
-        <Text style={styles.heading}>Welcome Back 👋</Text>
-        <Text style={styles.subheading}>Please login to your account</Text>
+        <Text style={[styles.heading, { color: theme.colors.text }]}>
+          Welcome Back 👋
+        </Text>
+        <Text style={[styles.subheading, { color: theme.colors.subtext }]}>
+          Please login to your account
+        </Text>
       </View>
 
       <Formik
@@ -158,7 +129,6 @@ const LoginScreen = ({ navigation }: Props) => {
               title="Login"
               loading={isSubmitting || isLoading}
               onPress={handleSubmit}
-              buttonStyle={styles.button}
             />
           </>
         )}
@@ -174,7 +144,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     justifyContent: 'center',
-    backgroundColor: '#fff',
   },
   headingWrapper: {
     marginBottom: 32,
@@ -182,14 +151,13 @@ const styles = StyleSheet.create({
   heading: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#222',
   },
   subheading: {
     fontSize: 16,
-    color: '#666',
     marginTop: 4,
   },
   button: {
     marginTop: 12,
+    borderRadius: 8,
   },
 });

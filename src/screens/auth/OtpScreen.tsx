@@ -14,7 +14,11 @@ import AppButton from '@/components/ui/Button';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '@/navigations/AuthStack';
 import { ToastUtils } from '@/utils/toast/toastUtils';
-import { useAuth } from '@/config/provider/AuthProvider';
+import { useTheme } from '@/config/provider/ThemeProvider';
+import { verifyOTP } from '@/services/authService';
+import { useUserProvider } from '@/config/provider/UserProvider';
+import { generateDummyOTP } from '@/utils/constants';
+import { checkPhoneNumberInFirestore } from '@/services/userService';
 
 interface OtpFormValues {
   otp: string;
@@ -30,50 +34,83 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'OTP'>;
 
 const OTPScreen = ({ route }: Props) => {
   const { user, confimationMessage } = route.params;
-  const { login } = useAuth();
-  const [timer, setTimer] = useState(60);
-  const [resendDisabled, setResendDisabled] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useUserProvider();
+  const { theme } = useTheme();
+
+  const [localState, setLocalState] = useState({
+    timer: 60,
+    resendDisabled: true,
+    isLoading: false,
+    generatedOTP: '',
+  });
+
+  useEffect(() => {
+    getOTP();
+  }, []);
+
+  const getOTP = () => {
+    const otp = generateDummyOTP();
+    ToastUtils.show(`Generated OTP :: ${otp}`);
+    setLocalState(prev => ({ ...prev, generatedOTP: otp }));
+  };
 
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
-    if (timer > 0) {
+    if (localState.timer > 0) {
       interval = setInterval(() => {
-        setTimer(prev => prev - 1);
+        setLocalState(prev => ({ ...prev, timer: prev.timer - 1 }));
       }, 1000);
     } else {
-      setResendDisabled(false);
+      setLocalState(prev => ({ ...prev, resendDisabled: false }));
       if (interval) clearInterval(interval);
     }
+
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [timer]);
+  }, [localState.timer]);
 
   const handleResend = () => {
-    setTimer(60);
-    setResendDisabled(true);
+    // Placeholder — implement actual resend logic here if needed
+    getOTP();
+    setLocalState({
+      ...localState,
+      timer: 30,
+      resendDisabled: true,
+    });
   };
 
   const handleSubmit = async (values: OtpFormValues) => {
     try {
-      setIsLoading(true);
-      await confimationMessage.confirm(values.otp);
-      login();
+      setLocalState(prev => ({ ...prev, isLoading: true }));
+      // await verifyOTP(confimationMessage, values.otp);
+      if (localState.generatedOTP == values.otp.toString()) {
+        const userData = await checkPhoneNumberInFirestore(user.phone_number);
+        if (userData) {
+          login(userData, user.role);
+          ToastUtils.show('User Found');
+        } else {
+          ToastUtils.show('User Not Found');
+        }
+      } else {
+        ToastUtils.show('Invalid OTP');
+      }
     } catch (error: any) {
-      ToastUtils.show(error.message || 'Something wents wrong');
+      ToastUtils.show(error.message || 'Something went wrong');
     } finally {
-      setIsLoading(false);
+      setLocalState(prev => ({ ...prev, isLoading: false }));
     }
   };
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text style={styles.title}>Enter OTP</Text>
-      <Text style={styles.subtitle}>
+      <Text style={[styles.title, { color: theme.colors.text }]}>
+        Enter OTP
+      </Text>
+      <Text style={[styles.subtitle, { color: theme.colors.subtext }]}>
         We sent a 6-digit code to your phone {user.phone_number}
       </Text>
 
@@ -95,9 +132,11 @@ const OTPScreen = ({ route }: Props) => {
             <TextInput
               style={[
                 styles.input,
+                { color: theme.colors.text, borderColor: theme.colors.border },
                 errors.otp && touched.otp && styles.errorInput,
               ]}
               placeholder="Enter OTP"
+              placeholderTextColor={theme.colors.placeholder}
               keyboardType="number-pad"
               maxLength={6}
               onChangeText={handleChange('otp')}
@@ -106,29 +145,37 @@ const OTPScreen = ({ route }: Props) => {
               autoFocus
             />
             {errors.otp && touched.otp && (
-              <Text style={styles.errorText}>{errors.otp}</Text>
+              <Text style={[styles.errorText, { color: theme.colors.error }]}>
+                {errors.otp}
+              </Text>
             )}
 
             <AppButton
               title="Verify OTP"
-              loading={isSubmitting || isLoading}
+              loading={isSubmitting || localState.isLoading}
               onPress={handleSubmit}
-              buttonStyle={styles.button}
             />
 
             <View style={styles.resendContainer}>
-              <Text style={styles.resendText}>Didn't receive code? </Text>
+              <Text style={[styles.resendText, { color: theme.colors.text }]}>
+                Didn't receive code?{' '}
+              </Text>
               <TouchableOpacity
-                disabled={resendDisabled}
+                disabled={localState.resendDisabled}
                 onPress={handleResend}
               >
                 <Text
                   style={[
                     styles.resendBtn,
-                    resendDisabled && styles.resendBtnDisabled,
+                    {
+                      color: localState.resendDisabled
+                        ? theme.colors.disabled
+                        : theme.colors.link,
+                    },
                   ]}
                 >
-                  Resend {resendDisabled ? `in ${timer}s` : ''}
+                  Resend{' '}
+                  {localState.resendDisabled ? `in ${localState.timer}s` : ''}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -146,7 +193,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     justifyContent: 'center',
-    backgroundColor: '#fff',
   },
   title: {
     fontSize: 26,
@@ -156,13 +202,11 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
     marginBottom: 32,
     textAlign: 'center',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#999',
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 14,
@@ -175,12 +219,12 @@ const styles = StyleSheet.create({
   },
   errorText: {
     marginTop: 6,
-    color: 'red',
     fontSize: 14,
     textAlign: 'center',
   },
   button: {
     marginTop: 24,
+    borderRadius: 8,
   },
   resendContainer: {
     flexDirection: 'row',
@@ -189,14 +233,9 @@ const styles = StyleSheet.create({
   },
   resendText: {
     fontSize: 14,
-    color: '#444',
   },
   resendBtn: {
     fontSize: 14,
-    color: '#6200EE',
     fontWeight: '600',
-  },
-  resendBtnDisabled: {
-    color: '#aaa',
   },
 });

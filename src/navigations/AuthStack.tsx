@@ -7,7 +7,7 @@ import { IUserSchema } from '@/schemas/IUserSchema';
 
 export type AuthStackParamList = {
   Login: undefined;
-  OTP: { user: IUserSchema; confimationMessage: any };
+  OTP: { user: IUserSchema; confimationMessage?: any };
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();

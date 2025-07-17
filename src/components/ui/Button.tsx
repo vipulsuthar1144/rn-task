@@ -1,3 +1,4 @@
+import { useTheme } from '@/config/provider/ThemeProvider';
 import React from 'react';
 import {
   TouchableOpacity,
@@ -25,9 +26,15 @@ const AppButton: React.FC<Props> = ({
   buttonStyle,
   textStyle,
 }) => {
+  const { theme } = useTheme();
   return (
     <TouchableOpacity
-      style={[styles.button, buttonStyle, disabled && styles.disabled]}
+      style={[
+        styles.button,
+        buttonStyle,
+        disabled && styles.disabled,
+        { backgroundColor: theme.colors.primary },
+      ]}
       onPress={onPress && onPress}
       activeOpacity={0.7}
       disabled={disabled || loading}
@@ -43,7 +50,7 @@ const AppButton: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   button: {
-    backgroundColor: '#6200EE',
+    // backgroundColor: '#6200EE',
     paddingVertical: 12,
     paddingHorizontal: 20,
     // marginHorizontal: 10,
@@ -52,7 +59,7 @@ const styles = StyleSheet.create({
     cursor: 'pointer',
   },
   disabled: {
-    backgroundColor: '#ccc',
+    opacity: 0.7,
   },
   text: {
     color: '#fff',

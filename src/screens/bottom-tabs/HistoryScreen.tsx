@@ -9,15 +9,18 @@ import {
 } from 'react-native';
 import { Text, Button, Card } from 'react-native-paper';
 import { IServiceSchema, ServiceStatus } from '@/schemas/service.schema';
-import { fetchAllServices, updateServiceStatus } from '@/services/service';
+import {
+  fetchAllServices,
+  fetchCompletedServicesByWorker,
+  updateServiceStatus,
+} from '@/services/service';
 import { STATUS_OPTIONS } from '@/utils/constants';
 import { useTheme } from '@/config/provider/ThemeProvider';
-import MapScreen from './Map';
 import { useUserProvider } from '@/config/provider/UserProvider';
 
-const ServicesScreen = () => {
+const HistoryScreen = () => {
   const { theme } = useTheme();
-  const { selectedRole } = useUserProvider();
+  const { user } = useUserProvider();
 
   const [data, setData] = useState<{
     loading: boolean;
@@ -40,7 +43,7 @@ const ServicesScreen = () => {
     }));
 
     try {
-      const services = await fetchAllServices(selectedRole);
+      const services = await fetchCompletedServicesByWorker(user?.id ?? '');
       setData(prev => ({
         ...prev,
         loading: false,
@@ -64,22 +67,6 @@ const ServicesScreen = () => {
   }, [fetchServices]);
 
   const onRefresh = () => fetchServices(true);
-
-  const onUpdateStatus = async (service: IServiceSchema) => {
-    const nextStatus: ServiceStatus =
-      service.status === 'pending'
-        ? 'inProgress'
-        : service.status === 'inProgress'
-        ? 'completed'
-        : service.status;
-
-    try {
-      await updateServiceStatus(service.id, nextStatus);
-      fetchServices();
-    } catch (err) {
-      console.error('Failed to update status:', err);
-    }
-  };
 
   const renderItem = ({ item }: { item: IServiceSchema }) => (
     <Card
@@ -118,21 +105,7 @@ const ServicesScreen = () => {
             {item.customer?.phone}
           </Text>
         </View>
-        <MapScreen />
       </Card.Content>
-
-      <Card.Actions style={styles.actions}>
-        {item.status !== 'completed' && (
-          <Button
-            mode="contained"
-            onPress={() => onUpdateStatus(item)}
-            style={styles.statusButton}
-            labelStyle={{ fontWeight: 'bold' }}
-          >
-            {item.status === 'pending' ? 'Start' : 'Complete'}
-          </Button>
-        )}
-      </Card.Actions>
     </Card>
   );
 
@@ -170,7 +143,7 @@ const ServicesScreen = () => {
   );
 };
 
-export default ServicesScreen;
+export default HistoryScreen;
 
 const styles = StyleSheet.create({
   filterWrapper: {
